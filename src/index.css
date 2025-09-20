@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* 既に書いていた base/components の追加分は残してOK */
+@layer base {
+  html { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+  ::selection { background: rgba(99,102,241,.25); }
+  pre { line-height: 1.4; }
+  pre code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 backdrop-blur p-5 shadow-sm; }
+  .card-hover { @apply transition hover:shadow-md; }
+  .btn-primary { @apply px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white font-medium hover:opacity-90 transition; }
+  .btn-outline { @apply px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800; }
+  .badge { @apply px-2.5 py-1 rounded-full text-xs border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800; }
+  .input { @apply w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 bg-white/80 dark:bg-slate-950/40 outline-none focus:ring-2 focus:ring-sky-400/40; }
+}
+@layer components {
+  /* 既存の .card / .btn-* はそのままでOK */
+
+  /* グラデ文字 */
+  .gtext { @apply bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500 bg-clip-text text-transparent; }
+
+  /* ガラス＋微ノイズ */
+  .glass { @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur border border-slate-200/80 dark:border-slate-800/60; }
+  .noise { background-image: radial-gradient(rgba(0,0,0,.04) 1px, transparent 1px); background-size: 6px 6px; }
+
+  /* KPIカード */
+  .stat { @apply card grid gap-1 p-4; }
+  .stat .label { @apply text-xs opacity-70; }
+  .stat .value { @apply text-2xl font-semibold tracking-tight; }
+  .stat .delta { @apply text-xs rounded-full px-2 py-0.5; }
+
+  /* タブ */
+  .tabs { @apply inline-flex rounded-2xl p-1 bg-slate-100 dark:bg-slate-800; }
+  .tab { @apply px-3 py-1.5 rounded-xl text-sm transition; }
+  .tab[data-active="true"] { @apply bg-white dark:bg-slate-900 shadow-sm; }
+
+  /* アイコンボタン */
+  .icon-btn { @apply h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 grid place-items-center hover:bg-slate-100 dark:hover:bg-slate-800; }
+
+  /* スケルトン */
+  .skeleton { @apply animate-pulse bg-slate-200 dark:bg-slate-800 rounded; }
+
+  /* スクロールバー細く */
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background-color: rgba(100,116,139,.35); border-radius: 9999px; }
+}
