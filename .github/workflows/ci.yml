@@ -17,5 +17,5 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck        # ← ここがOKになった
-      - run: pnpm run lint --if-present
+      - run: pnpm run lint 
       - run: pnpm run build
