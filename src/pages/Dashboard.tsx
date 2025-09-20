@@ -10,11 +10,12 @@ export default function Dashboard() {
 
   const avg = scouts.length ? Math.round(scouts.reduce((a,b)=>a+b.score,0)/scouts.length*100) : 0;
 
-  const filtered = scouts.filter(s => {
-    if (tab==="new") return true;     // 今は全部new扱い（将来フラグで分岐）
-    if (tab==="saved") return false;  // まだ保存機能なし
-    return true;
-  });
+  const filtered = scouts.filter(() => {
+  if (tab === "new") return true;
+  if (tab === "saved") return false;
+  return true;
+});
+
 
   return (
     <div className="space-y-6">
