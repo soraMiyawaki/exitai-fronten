@@ -38,7 +38,7 @@ export default function AppLayout() {
               alt="Recul AI"
               className="h-8 w-8 rounded-xl object-cover bg-white ring-1 ring-slate-200 dark:ring-slate-800"
             />
-            <span className="font-semibold tracking-tight gtext">Recul&nbsp;AI</span>
+            <span className="font-semibold tracking-tight gtext">ExitGpt&nbsp;AI</span>
           </div>
 
           {/* 中央：検索（md以上で表示） */}
