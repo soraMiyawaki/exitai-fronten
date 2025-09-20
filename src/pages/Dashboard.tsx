@@ -21,17 +21,17 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* KPI */}
       <section className="grid sm:grid-cols-3 gap-4">
-        <div className="stat">
+        <div className="card stat">
           <div className="label">新着スカウト</div>
           <div className="value">{scouts.length}</div>
           <span className="delta bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">+2 本週</span>
         </div>
-        <div className="stat">
+        <div className="card stat">
           <div className="label">平均適合度</div>
           <div className="value">{avg}%</div>
           <span className="delta bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">↑</span>
         </div>
-        <div className="stat">
+        <div className="card stat">
           <div className="label">保存済み</div>
           <div className="value">0</div>
           <span className="delta bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300">—</span>
