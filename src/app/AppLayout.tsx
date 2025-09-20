@@ -29,7 +29,7 @@ export default function AppLayout() {
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/70 backdrop-blur border-b border-slate-200/70 dark:border-slate-800/60">
         <div className="mx-auto max-w-6xl px-4 h-16 flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <img src="/brand.jpg" alt="Recul AI" className="h-8 w-8 rounded-xl object-cover bg-white ring-1 ring-slate-200 dark:ring-slate-800" />
+           <img src={`${import.meta.env.BASE_URL}brand.jpg`}alt="Recul AI"className="h-8 w-8 rounded-xl object-cover bg-white ring-1 ring-slate-200 dark:ring-slate-800"/>
             <span className="font-semibold tracking-tight gtext">Exit&nbsp;GPT</span>
           </div>
 
