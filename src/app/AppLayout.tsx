@@ -36,9 +36,19 @@ export default function AppLayout() {
         <div className="max-w-4xl mx-auto flex items-center justify-between px-4 py-3">
           {/* ロゴ */}
           <NavLink to="/" className="text-lg font-bold flex items-center">
+            {/* brand image; if not found, hide */}
+            <img
+              src={`${import.meta.env.BASE_URL}brand.jpg`}
+              alt="ブランドロゴ"
+              className="h-6 w-6 mr-2"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
             ExitGpt&nbsp;AI
           </NavLink>
-          {/* デスクトップ用ナビ */}
+          {/* デスクトップ用ナビ */ }
           <nav className="hidden lg:flex space-x-4">
             {nav.map((n) => (
               <NavLink
@@ -55,7 +65,7 @@ export default function AppLayout() {
               </NavLink>
             ))}
           </nav>
-          {/* テーマ切替ボタン */}
+          {/* テーマ切替ボタン */ }
           <button
             onClick={() => setDark((v) => !v)}
             title="テーマ切替"
@@ -64,7 +74,7 @@ export default function AppLayout() {
             {dark ? '🌙' : '☀️'}
           </button>
         </div>
-        {/* モバイル用ナビ */}
+        {/* モバイル用ナビ */ }
         <nav className="lg:hidden overflow-x-auto whitespace-nowrap px-4 py-2">
           {nav.map((n) => (
             <NavLink
