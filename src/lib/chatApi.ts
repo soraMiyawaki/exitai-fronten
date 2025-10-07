@@ -8,20 +8,64 @@ export type ChatRequest = {
   max_tokens?: number;
 };
 
+type SendChatOptions = {
+  temperature?: number;
+  max_tokens?: number;
+  signal?: AbortSignal;
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
-export async function sendChat(req: ChatRequest) {
+/* ---------- sendChat: オーバーロード ---------- */
+// ① ChatRequest そのまま渡す
+export async function sendChat(
+  req: ChatRequest,
+  opts?: { signal?: AbortSignal }
+): Promise<{ content: string }>;
+// ② messages[] + options で渡す（ChatBox の呼び方）
+export async function sendChat(
+  messages: ChatMessage[],
+  opts?: SendChatOptions
+): Promise<{ content: string }>;
+// 実装
+export async function sendChat(
+  arg1: ChatRequest | ChatMessage[],
+  arg2?: SendChatOptions | { signal?: AbortSignal }
+): Promise<{ content: string }> {
+  const isArray = Array.isArray(arg1);
+
+  const req: ChatRequest = isArray
+    ? {
+        messages: arg1 as ChatMessage[],
+        temperature: (arg2 as SendChatOptions | undefined)?.temperature ?? 0.3,
+        max_tokens: (arg2 as SendChatOptions | undefined)?.max_tokens ?? 512,
+      }
+    : (arg1 as ChatRequest);
+
+  const signal: AbortSignal | undefined = isArray
+    ? (arg2 as SendChatOptions | undefined)?.signal
+    : (arg2 as { signal?: AbortSignal } | undefined)?.signal;
+
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal,
     body: JSON.stringify(req),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data as { content: string };
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${text}`);
+  }
+  return (await res.json()) as { content: string };
 }
 
-// ストリーミング: 受けたテキストを逐次 onToken に流す
+/* ---------- ストリーミング ---------- */
+export type ChatStreamHandlers = {
+  onToken: (chunk: string) => void;
+  onDone?: () => void;
+  onError?: (e: unknown) => void;
+};
+
 export function streamChat(
   req: ChatRequest,
   onToken: (chunk: string) => void,
@@ -49,8 +93,8 @@ export function streamChat(
         if (value) onToken(decoder.decode(value, { stream: true }));
       }
       onDone?.();
-    } catch (e) {
-      if ((e as any)?.name === "AbortError") return;
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
       onError?.(e);
     }
   })();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getProfile, saveProfile, type Profile as P } from "../Iib/mock";
+import { getProfile, saveProfile, type Profile as P } from "../lib/mock";
 
 export default function Profile() {
   const [form, setForm] = useState<P>({ name: "", title: "", years: 1, skills: [] });
