@@ -2,11 +2,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { streamChat } from "../lib/chatApi";
 import type { ChatMessage } from "../lib/chatApi";
-// 先頭付近
-import { getProfile } from "../lib/mock"; // Profile.avatarUrl を使う場合（任意）
-import AssistantBubble from "../components/AssistantBubble"; // 既に使っていればスキップ
-import type { Profile } from "../lib/types"; // or "../lib/types"
-
+import AssistantBubble from "../components/AssistantBubble";
+const KUMA_STYLE = [
+  "出力ルール：すべての文末に必ず『クマ』を付けて返答してください。",
+  "コード/コマンド/URL/ファイルパス/JSON/表の中には付けないでください。",
+  "箇条書きでも各行の最後に付けてください。",
+].join("\n");
 const LS_MSGS = "exitai.messages";
 const CATS = [
   "インフラ/サーバ",
@@ -48,8 +49,13 @@ export default function AIChat() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
   }, [messages, isStreaming]);
 
-  const base: ChatMessage[] = useMemo(() => [{ role: "system", content: sys }], [sys]);
-
+  const base: ChatMessage[] = useMemo(
+  () => [
+    { role: "system", content: sys },
+    { role: "system", content: KUMA_STYLE }, // ← 追加
+  ],
+  [sys]
+);
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
@@ -85,20 +91,6 @@ export default function AIChat() {
       }
     );
   };
-  // コンポーネント内
-const [aiAvatarUrl, setAiAvatarUrl] = useState<string>(
-  (import.meta as any).env?.VITE_AI_AVATAR_URL || "/ai-avatar.png"
-);
-
-// プロフィールに保存済みの avatarUrl があれば反映（任意）
-useEffect(() => {
-  (async () => {
-    try {
-      const p = await getProfile();
-      if (p?.avatarUrl) setAiAvatarUrl(p.avatarUrl);
-    } catch {}
-  })();
-}, []);
 
   const stop = () => {
     abortRef.current?.abort();
@@ -112,15 +104,12 @@ useEffect(() => {
   };
 
   return (
-    // ここを w-screen → w-full、h-screen → min-h-dvh に
     <div className="min-h-dvh w-full overflow-x-hidden bg-white">
-      {/* 中央に最大幅コンテナ（必要なら 1100～1280px で調整） */}
       <div className="mx-auto flex min-h-dvh w-full max-w-[1200px] flex-col">
         {/* ヘッダー */}
         <header className="flex items-center gap-2 px-4 py-3 border-b">
           <div className="text-lg font-semibold">ExitAI Support</div>
           <div className="ml-auto flex items-center gap-2">
-            {/* アクセシビリティ対応ラベル */}
             <label htmlFor="category-select" className="sr-only">
               カテゴリ
             </label>
@@ -169,31 +158,25 @@ useEffect(() => {
         </div>
 
         {/* メッセージリスト */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto px-4 py-4 space-y-4 overscroll-contain"
-        >
+        <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 overscroll-contain">
           {messages.length === 0 && (
-            <div className="text-sm text-neutral-500">
-              カテゴリを選んで質問を入力してください。
-            </div>
+            <div className="text-sm text-neutral-500">カテゴリを選んで質問を入力してください。</div>
           )}
           {messages.map((m, i) => {
             const isUser = m.role === "user";
             return (
               <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={[
-                    // コンテナ幅にフィットしつつ、左右余白を残してはみ出さない
-                    "break-words whitespace-pre-wrap leading-relaxed rounded-2xl px-4 py-3 text-sm shadow-sm",
-                    "max-w-[min(860px,calc(100%-4rem))]",
-                    isUser
-                      ? "bg-black text-white"
-                      : "bg-red-50 text-neutral-900 border border-red-100",
-                  ].join(" ")}
-                >
-                  {m.content || (i === messages.length - 1 && isStreaming ? "…" : "")}
-                </div>
+                {isUser ? (
+                  <div className="max-w-[min(860px,calc(100%-4rem))] whitespace-pre-wrap leading-relaxed rounded-2xl px-4 py-3 text-sm shadow-sm bg-black text-white">
+                    {m.content || (i === messages.length - 1 && isStreaming ? "…" : "")}
+                  </div>
+                ) : (
+                  <AssistantBubble
+                    content={m.content || (i === messages.length - 1 && isStreaming ? "…" : "")}
+                    talking={m.role === "assistant" && i === messages.length - 1 && isStreaming}
+                  />
+
+                  )}
               </div>
             );
           })}
