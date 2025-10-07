@@ -1,5 +1,5 @@
 // src/components/AssistantBubble.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import MarkdownMessage from "./MarkdownMessage";
 import { copyToClipboard, showCopyFallbackHint } from "../lib/copy";
 import TalkingAvatar from "./TalkingAvatar";
