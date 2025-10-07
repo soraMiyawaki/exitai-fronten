@@ -1,322 +1,214 @@
 // src/pages/AIChat.tsx
-import { useEffect, useMemo, useRef, useState } from "react";
-import { sendChat, type ChatMessage } from "../lib/chatApi";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { streamChat } from "../lib/chatApi";                // ← 値のインポートだけ
+import type { ChatMessage } from "../lib/chatApi";          // ← 型は type-only import
 
-/**
- * 会社専用 技術サポートチャット UI（黒・白・赤のモダンスタイル）
- * 機能:
- * - カテゴリ選択（ネットワーク/ソフトウェア/ハードウェア/一般）
- * - よくある質問のサジェストチップ
- * - テキストファイルの添付（内容を取り込み）
- * - 送信/停止（Abort）ボタン
- * - ローカル保存（lastChat & lastCategory）
- * - （拡張余地）会話IDや履歴APIに接続しやすい構造
- */
+const LS_MSGS = "exitai.messages";
+const CATS = [
+  "インフラ/サーバ",
+  "ネットワーク",
+  "OS/ミドルウェア",
+  "開発/CI",
+  "クラウド/Azure",
+  "セキュリティ",
+  "トラブルシュート",
+] as const;
+type Category = typeof CATS[number];
+
+const DEFAULT_SYS = (cat: string) =>
+  `あなたは${cat}領域のシステムエンジニアです。要件の聞き返し→前提の明確化→箇条書きの手順→最後に注意点の順で、簡潔かつ正確に答えてください。`;
+
 export default function AIChat() {
-  // ====== 状態 ======
-  const [category, setCategory] = useState<string>("一般");
-  const [systemPrompt, setSystemPrompt] = useState(
-    "あなたは日本語で丁寧に回答する技術サポートのアシスタントです。問題の再現手順、原因候補、対処手順を簡潔に提示し、必要なら注意点も併記してください。"
-  );
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [msgs, setMsgs] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-
+  const [cat, setCat] = useState<Category>(CATS[0]);
+  const [sys, setSys] = useState(DEFAULT_SYS(CATS[0]));
+  const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  // ====== 洗練された体験のための定義 ======
-  const suggestions = [
-    "パスワードをリセットする方法は？",
-    "ネットワークが繋がらないときの確認項目は？",
-    "ソフトのインストールに失敗します。原因は？",
-    "ログの取り方と提出手順を教えて",
-  ];
-
-  const categories = ["一般", "ネットワーク", "ソフトウェア", "ハードウェア"] as const;
-
-  const canSend = useMemo(() => !loading && input.trim().length > 0, [loading, input]);
-
-  // ====== ローカル保存（簡易メモリ） ======
+  // 復元
   useEffect(() => {
-    // 起動時に前回の会話とカテゴリを復元
-    const saved = localStorage.getItem("lastChat");
-    const savedCat = localStorage.getItem("lastCategory");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setMsgs(parsed);
-      } catch {}
-    }
-    if (savedCat) setCategory(savedCat);
+    try {
+      const raw = localStorage.getItem(LS_MSGS);
+      if (raw) setMessages(JSON.parse(raw));
+    } catch {}
   }, []);
-
+  // 保存
   useEffect(() => {
-    // メッセージが更新されるたびに画面最下部へ
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [msgs, loading]);
+    localStorage.setItem(LS_MSGS, JSON.stringify(messages));
+  }, [messages]);
 
+  // 自動スクロール
   useEffect(() => {
-    // カテゴリ変更を保存
-    localStorage.setItem("lastCategory", category);
-  }, [category]);
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+  }, [messages, isStreaming]);
 
-  // ====== ファイル添付 ======
-  const handleFileUpload = async (file: File) => {
-    setFileName(file.name);
-    if (file && file.type.startsWith("text")) {
-      const text = await file.text();
-      // 取り込みは最大1000文字（過大な入力はモデル遅延の原因になる）
-      setFileContent(text.slice(0, 1000));
-    } else {
-      // 画像やバイナリはここでは読み込まず、サーバにアップロードする設計に拡張可
-      setFileContent(null);
-    }
-  };
+  const base: ChatMessage[] = useMemo(() => [{ role: "system", content: sys }], [sys]);
 
-  const clearAttachment = () => {
-    setFileContent(null);
-    setFileName(null);
-  };
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) return;
 
-  // ====== 送信処理 ======
-  const handleSend = async () => {
-    if (!canSend) return;
-
-    setLoading(true);
-
-    // カテゴリベースのシステムプロンプト（必要に応じて拡張）
-    const categoryPrompt =
-      category !== "一般"
-        ? `あなたは${category}分野の技術サポート専門のアシスタントです。\n${systemPrompt}`
-        : systemPrompt;
-
-    const contentWithAttach =
-      input.trim() +
-      (fileContent
-        ? `\n\n[添付テキスト(${fileName ?? "file"})]\n${fileContent}`
-        : "");
-
-    const userMsg: ChatMessage = { role: "user", content: contentWithAttach };
-    const history: ChatMessage[] = [{ role: "system", content: categoryPrompt }, ...msgs, userMsg];
-
-    // ユーザーメッセージを即時表示
-    setMsgs((prev) => [...prev, userMsg]);
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const next = [...messages, userMsg];
+    setMessages(next);
     setInput("");
 
-    try {
-      // 既存のリクエストがあれば中断
-      abortRef.current?.abort();
-      abortRef.current = new AbortController();
+    // placeholder の assistant を差し込んでストリームで埋める
+    const idx = next.length;
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
-      // API呼び出し
-      const data = await sendChat(history, { signal: abortRef.current.signal });
-      const assistant: ChatMessage = { role: "assistant", content: data.content };
-      setMsgs((prev) => [...prev, assistant]);
-
-      // ローカル保存
-      localStorage.setItem("lastChat", JSON.stringify([...msgs, userMsg, assistant]));
-    } catch (e: any) {
-      setMsgs((prev) => [
-        ...prev,
-        { role: "assistant", content: `エラーが発生しました: ${e?.message ?? e}` },
-      ]);
-    } finally {
-      setLoading(false);
-      // 添付は一回使ったらクリア（継続添付したい場合はコメントアウト）
-      clearAttachment();
-    }
+    setIsStreaming(true);
+    abortRef.current = streamChat(
+      { messages: [...base, ...next], temperature: 0.3, max_tokens: 512 },
+      (chunk) => {
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], content: copy[idx].content + chunk };
+          return copy;
+        });
+      },
+      () => {
+        setIsStreaming(false);
+        abortRef.current = null;
+      },
+      (err) => {
+        console.error(err);
+        setIsStreaming(false);
+        abortRef.current = null;
+        alert("ストリーミング中にエラーが発生しました");
+      }
+    );
   };
 
-  // ====== 停止（Abort） ======
-  const handleStop = () => {
+  const stop = () => {
     abortRef.current?.abort();
-    setLoading(false);
+    abortRef.current = null;
+    setIsStreaming(false);
   };
 
-  // ====== UI ======
-  return (
-    <div className="mx-auto max-w-4xl p-4 md:p-6 bg-white text-gray-900">
-      {/* Header */}
-      <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
-          <span className="text-black">Support</span>
-          <span className="px-2">/</span>
-          <span className="text-red-600">Chatbot</span>
-        </h1>
+  const newChat = () => {
+    if (isStreaming) stop();
+    setMessages([]);
+  };
 
-        {/* Category Selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">カテゴリ</label>
+  return (
+    <div className="h-screen w-screen flex flex-col bg-white">
+      {/* ヘッダー */}
+      <header className="flex items-center gap-2 px-4 py-3 border-b">
+        <div className="text-lg font-semibold">ExitAI Support</div>
+        <div className="ml-auto flex items-center gap-2">
+          {/* 視覚的には非表示だが関連付けされたラベル */}
+          <label htmlFor="category-select" className="sr-only">
+            カテゴリ
+          </label>
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            id="category-select"
+            title="カテゴリ"               // アクセシブルネームの補助
+            aria-label="カテゴリ"
+            value={cat}
+            onChange={(e) => {
+              const c = e.target.value as Category;
+              setCat(c);
+              setSys(DEFAULT_SYS(c));
+            }}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
           >
-            {categories.map((c) => (
+            {CATS.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </select>
 
-          {/* New Chat: ローカルの簡易リセット */}
           <button
-            className="ml-2 rounded bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
-            onClick={() => {
-              setMsgs([]);
-              localStorage.removeItem("lastChat");
-            }}
-            title="新しいチャット"
+            onClick={newChat}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
+            title="新しいチャットを開始"
           >
             新規
           </button>
         </div>
       </header>
 
-      {/* System Prompt */}
-      <div className="mb-4">
-        <label className="mb-1 block text-sm text-gray-600">システムプロンプト</label>
+      {/* システムプロンプト */}
+      <div className="px-4 py-2 border-b bg-neutral-50">
+        <label htmlFor="sys-prompt" className="block text-xs text-neutral-500 mb-1">
+          システムプロンプト
+        </label>
         <textarea
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
+          id="sys-prompt"
+          title="システムプロンプト"
+          value={sys}
+          onChange={(e) => setSys(e.target.value)}
           rows={2}
-          className="w-full rounded border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-          placeholder="会話全体の前提や制約をここに記述します。"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
         />
       </div>
 
-      {/* Chat Area */}
-      <div className="mb-3 rounded-2xl border">
-        {/* Message list */}
-        <div className="max-h-[60vh] overflow-y-auto p-3 md:p-4 space-y-3">
-          {msgs.map((m, idx) => {
-            const isUser = m.role === "user";
-            return (
+      {/* メッセージリスト */}
+      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="text-sm text-neutral-500">カテゴリを選んで質問を入力してください。</div>
+        )}
+        {messages.map((m, i) => {
+          const isUser = m.role === "user";
+          return (
+            <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
               <div
-                key={idx}
-                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                className={`max-w-[min(900px,90vw)] whitespace-pre-wrap leading-relaxed rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                  isUser ? "bg-black text-white" : "bg-red-50 text-neutral-900 border border-red-100"
+                }`}
               >
-                <div
-                  className={`max-w-[90%] whitespace-pre-wrap rounded-2xl px-3 py-2 shadow-sm text-[15px] md:text-base
-                  ${isUser ? "bg-black text-white" : "bg-red-600 text-white"}`}
-                >
-                  <div className="mb-1 text-xs opacity-70">
-                    {isUser ? "You" : m.role === "assistant" ? "AI" : "System"}
-                  </div>
-                  <div>{m.content}</div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Loading indicator */}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl bg-red-600 px-3 py-2 shadow-sm text-[15px] md:text-base text-white">
-                <div className="mb-1 text-xs opacity-70">AI</div>
-                <span className="inline-flex items-center gap-1">
-                  <span className="animate-pulse">●</span>
-                  <span className="animate-pulse [animation-delay:0.1s]">●</span>
-                  <span className="animate-pulse [animation-delay:0.2s]">●</span>
-                </span>
+                {m.content || (i === messages.length - 1 && isStreaming ? "…" : "")}
               </div>
             </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Suggestions */}
-        <div className="border-t bg-gray-50/60 px-3 py-2 md:px-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-500">サジェスト:</span>
-            {suggestions.map((s, i) => (
-              <button
-                key={i}
-                className="text-xs rounded-full bg-white px-3 py-1 shadow hover:bg-gray-100"
-                onClick={() => setInput(s)}
-                type="button"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* Input Row */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-start">
-        <div className="flex-1">
+      {/* 入力エリア */}
+      <form onSubmit={onSubmit} className="px-4 py-3 border-t bg-white">
+        <div className="flex items-end gap-2">
+          {/* 視覚的に隠すが関連付けたラベル */}
+          <label htmlFor="chat-input" className="sr-only">
+            メッセージ入力
+          </label>
           <textarea
+            id="chat-input"
+            title="メッセージ入力"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            placeholder="質問を入力…（Shift+Enterで改行）"
+            rows={3}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                handleSend();
+                onSubmit(e);
               }
             }}
-            rows={3}
-            className="min-h-[56px] w-full rounded border p-3 focus:outline-none focus:ring-2 focus:ring-red-500"
-            placeholder="質問を入力（Shift+Enterで改行、Enterで送信）"
+            className="flex-1 w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
-          {/* Attachment pill */}
-          {fileName && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs">
-              <span className="truncate max-w-[220px]">{fileName}</span>
-              <button
-                type="button"
-                onClick={clearAttachment}
-                className="rounded bg-gray-200 px-2 py-0.5 hover:bg-gray-300"
-                title="添付をクリア"
-              >
-                クリア
-              </button>
-            </div>
+          {!isStreaming ? (
+            <button
+              type="submit"
+              className="rounded-xl px-4 py-3 text-sm font-medium shadow bg-red-600 text-white hover:bg-red-700"
+            >
+              送信
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stop}
+              className="rounded-xl px-4 py-3 text-sm font-medium shadow bg-white border hover:bg-gray-50"
+            >
+              停止
+            </button>
           )}
         </div>
-
-        <div className="flex w-full gap-2 md:w-auto">
-          {/* Attach button */}
-          <label className="flex flex-1 cursor-pointer items-center justify-center rounded border px-3 py-2 text-sm hover:bg-gray-50 md:flex-none">
-            添付
-            <input
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
-              }}
-            />
-          </label>
-
-          {/* Stop */}
-          <button
-            onClick={handleStop}
-            disabled={!loading}
-            className="flex-1 rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 md:flex-none"
-            title="生成を停止"
-          >
-            停止
-          </button>
-
-          {/* Send */}
-          <button
-            onClick={handleSend}
-            disabled={!canSend}
-            className="flex-1 rounded bg-black px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 md:flex-none"
-            title={canSend ? "送信" : "入力してください"}
-          >
-            {loading ? "送信中…" : "送信"}
-          </button>
-        </div>
-      </div>
-
-      <p className="mt-3 text-xs text-gray-500">
-        ※ バックエンドの <code>.env</code> に APIキー未設定時は <code>(echo)</code> 応答になります。
-      </p>
+      </form>
     </div>
   );
 }

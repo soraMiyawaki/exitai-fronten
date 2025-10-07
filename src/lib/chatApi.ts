@@ -1,72 +1,59 @@
 // src/lib/chatApi.ts
+export type ChatRole = "system" | "user" | "assistant";
+export type ChatMessage = { role: ChatRole; content: string };
 
-// === Types ===
-export type Role = "system" | "user" | "assistant";
-
-export type ChatMessage = {
-  role: Role;
-  content: string;
-  // UI側で一時IDを付けるケースがあるため任意
-  id?: string;
+export type ChatRequest = {
+  messages: ChatMessage[];
+  temperature?: number;
+  max_tokens?: number;
 };
 
-export type ChatResult = {
-  content: string;
-  model?: string;
-  provider?: string;
-};
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
-// === Config ===
-// Viteの開発時は VITE_API_BASE_URL 未設定でOK（相対 /api をプロキシ）
-// 本番や別オリジンのAPIを叩く場合は .env(.local) に VITE_API_BASE_URL を設定
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
-
-// === Main API ===
-/**
- * メッセージ履歴をバックエンドの /api/chat に送り、AI応答を取得する。
- * 返り値は常に { content, model?, provider? } 形式に正規化される。
- */
-export async function sendChat(
-  messages: ChatMessage[],
-  options?: { temperature?: number; maxTokens?: number; signal?: AbortSignal }
-): Promise<ChatResult> {
-  const payload = {
-    messages,
-    temperature: options?.temperature ?? 0.7,
-    max_tokens: options?.maxTokens ?? 512,
-  };
-
+export async function sendChat(req: ChatRequest) {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: options?.signal,
+    body: JSON.stringify(req),
   });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data as { content: string };
+}
 
-  if (!res.ok) {
-    let text = "";
+// ストリーミング: 受けたテキストを逐次 onToken に流す
+export function streamChat(
+  req: ChatRequest,
+  onToken: (chunk: string) => void,
+  onDone?: () => void,
+  onError?: (e: unknown) => void
+) {
+  const controller = new AbortController();
+
+  (async () => {
     try {
-      text = await res.text();
-    } catch {
-      /* noop */
+      const res = await fetch(`${API_BASE}/api/chat/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      while (!done) {
+        const { value, done: d } = await reader.read();
+        done = d;
+        if (value) onToken(decoder.decode(value, { stream: true }));
+      }
+      onDone?.();
+    } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
+      onError?.(e);
     }
-    throw new Error(text || `HTTP ${res.status}`);
-  }
+  })();
 
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) {
-    const data: any = await res.json();
-
-    // 返却形を正規化
-    if (typeof data === "string") return { content: data };
-    if (data?.content) return { content: data.content, model: data.model, provider: data.provider };
-    if (data?.reply) return { content: data.reply };
-    if (data?.message) return { content: data.message };
-
-    // 想定外の形はJSONを文字列化して返す
-    return { content: JSON.stringify(data) };
-  }
-
-  // プレーンテキスト等
-  return { content: await res.text() };
+  return controller;
 }
