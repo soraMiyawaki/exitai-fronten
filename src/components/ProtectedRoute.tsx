@@ -1,6 +1,7 @@
 // src/components/ProtectedRoute.tsx
 import { useEffect, useState } from 'react';
-import { isAuthenticated, redirectToLogin } from '../lib/auth';
+import { useNavigate } from 'react-router-dom';
+import { isAuthenticated } from '../lib/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,16 +9,17 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [checking, setChecking] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     isAuthenticated().then(authed => {
       if (!authed) {
-        redirectToLogin();
+        navigate('/login');
       } else {
         setChecking(false);
       }
     });
-  }, []);
+  }, [navigate]);
 
   if (checking) {
     return (
