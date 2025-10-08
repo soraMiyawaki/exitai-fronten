@@ -113,6 +113,16 @@ export default function AIChat() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isStreaming]);
 
+  // Stop function (defined before useEffect that uses it)
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
+    // 中断時も途中までの回答を保存
+    localStorage.setItem(LS_TREE, serializeTree(conversationTree));
+    localStorage.setItem(LS_MSGS, JSON.stringify(messages));
+  }, [conversationTree, messages]);
+
   // キーボードショートカット
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -274,15 +284,6 @@ export default function AIChat() {
       sendMessage(getCurrentMessages(updatedTree), updatedTree);
     }
   };
-
-  const stop = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setIsStreaming(false);
-    // 中断時も途中までの回答を保存
-    localStorage.setItem(LS_TREE, serializeTree(conversationTree));
-    localStorage.setItem(LS_MSGS, JSON.stringify(messages));
-  }, [conversationTree, messages]);
 
   const newChat = () => {
     if (isStreaming) stop();
