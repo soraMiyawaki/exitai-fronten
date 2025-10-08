@@ -1,6 +1,14 @@
 // src/lib/chatApi.ts
+import { ChatApiError, fetchWithRetry } from "./errors";
+
 export type ChatRole = "system" | "user" | "assistant";
-export type ChatMessage = { role: ChatRole; content: string };
+export type ChatMessage = {
+  role: ChatRole;
+  content: string;
+  timestamp?: number;
+  reasoning?: string; // o1 model thinking process
+  reasoningTokens?: number; // reasoning token count
+};
 
 export type ChatRequest = {
   messages: ChatMessage[];
@@ -16,22 +24,24 @@ type SendChatOptions = {
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
+export { ChatApiError };
+
 /* ---------- sendChat: オーバーロード ---------- */
 // ① ChatRequest そのまま渡す
 export async function sendChat(
   req: ChatRequest,
   opts?: { signal?: AbortSignal }
-): Promise<{ content: string }>;
+): Promise<{ content: string; reasoning?: string; reasoningTokens?: number }>;
 // ② messages[] + options で渡す（ChatBox の呼び方）
 export async function sendChat(
   messages: ChatMessage[],
   opts?: SendChatOptions
-): Promise<{ content: string }>;
+): Promise<{ content: string; reasoning?: string; reasoningTokens?: number }>;
 // 実装
 export async function sendChat(
   arg1: ChatRequest | ChatMessage[],
   arg2?: SendChatOptions | { signal?: AbortSignal }
-): Promise<{ content: string }> {
+): Promise<{ content: string; reasoning?: string; reasoningTokens?: number }> {
   const isArray = Array.isArray(arg1);
 
   const req: ChatRequest = isArray
@@ -46,17 +56,26 @@ export async function sendChat(
     ? (arg2 as SendChatOptions | undefined)?.signal
     : (arg2 as { signal?: AbortSignal } | undefined)?.signal;
 
-  const res = await fetch(`${API_BASE}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal,
-    body: JSON.stringify(req),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${text}`);
+  try {
+    const res = await fetchWithRetry(`${API_BASE}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal,
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const detail = data.detail || res.statusText;
+      throw ChatApiError.fromResponse(res.status, detail);
+    }
+
+    return (await res.json()) as { content: string; reasoning?: string; reasoningTokens?: number };
+  } catch (err: any) {
+    if (err instanceof ChatApiError) throw err;
+    if (err.name === 'AbortError') throw ChatApiError.abort();
+    throw ChatApiError.network(err.message);
   }
-  return (await res.json()) as { content: string };
 }
 
 /* ---------- ストリーミング ---------- */
@@ -70,19 +89,24 @@ export function streamChat(
   req: ChatRequest,
   onToken: (chunk: string) => void,
   onDone?: () => void,
-  onError?: (e: unknown) => void
+  onError?: (e: ChatApiError) => void
 ) {
   const controller = new AbortController();
 
   (async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/chat/stream`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
         signal: controller.signal,
-      });
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      }, 0); // ストリーミングはリトライしない
+
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        const detail = data.detail || res.statusText;
+        throw ChatApiError.fromResponse(res.status, detail);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -90,12 +114,26 @@ export function streamChat(
       while (!done) {
         const { value, done: d } = await reader.read();
         done = d;
-        if (value) onToken(decoder.decode(value, { stream: true }));
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          // ERROR: で始まる場合はエラー
+          if (chunk.startsWith("ERROR: ")) {
+            throw new ChatApiError(500, 'SERVER', chunk.replace("ERROR: ", ""), false);
+          }
+          onToken(chunk);
+        }
       }
       onDone?.();
     } catch (e: any) {
-      if (e?.name === "AbortError") return;
-      onError?.(e);
+      if (e?.name === "AbortError") {
+        onDone?.(); // Abort時も正常終了扱い
+        return;
+      }
+      if (e instanceof ChatApiError) {
+        onError?.(e);
+      } else {
+        onError?.(ChatApiError.network(e.message));
+      }
     }
   })();
 

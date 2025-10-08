@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { sendChat, type ChatMessage } from '@/lib/chatApi'
+import { sendChat, type ChatMessage } from '../lib/chatApi'
 
 export default function ChatBox() {
   const [systemPrompt, setSystemPrompt] = useState('あなたは日本語で丁寧に回答するアシスタントです。')

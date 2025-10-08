@@ -1,9 +1,34 @@
 @import "tailwindcss";
 
+/* Design Tokens */
+:root {
+  --bg: #ffffff;
+  --fg: #111827;
+  --muted: #6b7280;
+  --brand: #ef4444;
+  --brand-hover: #dc2626;
+  --surface: #f9fafb;
+  --border: #e5e7eb;
+}
+
+.dark {
+  --bg: #0b0b0c;
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --brand: #ef4444;
+  --brand-hover: #dc2626;
+  --surface: #111214;
+  --border: #1f2937;
+}
+
 /* base: フォント/選択色/コード */
 @layer base {
-  html { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
-  ::selection { background: rgba(99,102,241,.25); }
+  html {
+    font-family: 'Inter', 'Noto Sans JP', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    background-color: var(--bg);
+    color: var(--fg);
+  }
+  ::selection { background: rgba(239,68,68,.25); }
   pre { line-height: 1.4; }
   pre code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
 }
