@@ -2,7 +2,7 @@
   "routes": [
     {
       "route": "/api/*",
-      "allowedRoles": ["anonymous"]
+      "rewrite": "https://et-chat.azurewebsites.net/api/{*path}"
     }
   ],
   "navigationFallback": {
