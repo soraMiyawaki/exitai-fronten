@@ -17,11 +17,17 @@ interface AuthResponse {
 export async function getCurrentUser(): Promise<ClientPrincipal | null> {
   try {
     const response = await fetch("/.auth/me");
-    if (!response.ok) return null;
+    console.log("Auth check - status:", response.status);
+    if (!response.ok) {
+      console.log("Auth check - not ok");
+      return null;
+    }
 
     const data: AuthResponse = await response.json();
+    console.log("Auth check - data:", data);
     return data.clientPrincipal;
-  } catch {
+  } catch (error) {
+    console.log("Auth check - error:", error);
     return null;
   }
 }
