@@ -1,8 +1,15 @@
 // src/pages/Login.tsx
 import { useEffect, useState } from "react";
 
+interface UserInfo {
+  identityProvider: string;
+  userId: string;
+  userDetails: string;
+  userRoles: string[];
+}
+
 export default function Login() {
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
     // ユーザー情報を取得
