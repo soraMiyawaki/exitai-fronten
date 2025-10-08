@@ -10,7 +10,6 @@ interface CodeBlockProps {
   inline?: boolean;
   className?: string;
   children?: React.ReactNode;
-  [key: string]: unknown;
 }
 
 const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children, ...props }) => {
@@ -76,7 +75,7 @@ export default function MarkdownMessage({ content }: { content: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
-        components={{ code: CodeBlock }}
+        components={{ code: CodeBlock as never }}
       >
         {content}
       </ReactMarkdown>

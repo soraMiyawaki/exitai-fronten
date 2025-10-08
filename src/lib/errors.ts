@@ -72,7 +72,7 @@ export async function fetchWithRetry(
 
       return res;
     } catch (err) {
-      lastError = err;
+      lastError = err instanceof Error ? err : new Error(String(err));
 
       // AbortErrorはリトライしない
       if (err instanceof Error && err.name === 'AbortError') {

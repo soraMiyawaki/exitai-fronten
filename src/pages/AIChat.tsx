@@ -1,5 +1,5 @@
 // src/pages/AIChat.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { streamChat, ChatApiError } from "../lib/chatApi";
 import type { ChatMessage } from "../lib/chatApi";
@@ -275,14 +275,14 @@ export default function AIChat() {
     }
   };
 
-  const stop = () => {
+  const stop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setIsStreaming(false);
     // 中断時も途中までの回答を保存
     localStorage.setItem(LS_TREE, serializeTree(conversationTree));
     localStorage.setItem(LS_MSGS, JSON.stringify(messages));
-  };
+  }, [conversationTree, messages]);
 
   const newChat = () => {
     if (isStreaming) stop();
