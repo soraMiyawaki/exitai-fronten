@@ -21,8 +21,8 @@ export default function ChatBox() {
       const data = await sendChat(all, { signal: abortRef.current.signal })
       setMsgs(prev => [...prev, { role: 'assistant', content: data.content }])
       setInput('')
-    } catch (e: any) {
-      alert(`エラー: ${e.message ?? e}`)
+    } catch (e) {
+      alert(`エラー: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
     }

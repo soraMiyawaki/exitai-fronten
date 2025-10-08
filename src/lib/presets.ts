@@ -66,7 +66,9 @@ export function loadPresets(): Preset[] {
       const custom = JSON.parse(saved) as Preset[];
       return [...DEFAULT_PRESETS, ...custom];
     }
-  } catch {}
+  } catch {
+    // LocalStorage access error - ignore
+  }
   return DEFAULT_PRESETS;
 }
 
@@ -75,7 +77,9 @@ export function savePreset(preset: Preset) {
     const current = loadPresets().filter(p => !DEFAULT_PRESETS.some(d => d.id === p.id));
     const updated = [...current, preset];
     localStorage.setItem(LS_PRESETS, JSON.stringify(updated));
-  } catch {}
+  } catch {
+    // LocalStorage access error - ignore
+  }
 }
 
 export function deletePreset(id: string) {
@@ -83,5 +87,7 @@ export function deletePreset(id: string) {
     const current = loadPresets().filter(p => !DEFAULT_PRESETS.some(d => d.id === p.id));
     const updated = current.filter(p => p.id !== id);
     localStorage.setItem(LS_PRESETS, JSON.stringify(updated));
-  } catch {}
+  } catch {
+    // LocalStorage access error - ignore
+  }
 }

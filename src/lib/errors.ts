@@ -71,11 +71,11 @@ export async function fetchWithRetry(
       }
 
       return res;
-    } catch (err: any) {
+    } catch (err) {
       lastError = err;
 
       // AbortErrorはリトライしない
-      if (err.name === 'AbortError') {
+      if (err instanceof Error && err.name === 'AbortError') {
         throw ChatApiError.abort();
       }
 

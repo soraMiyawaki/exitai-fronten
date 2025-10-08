@@ -71,10 +71,10 @@ export async function sendChat(
     }
 
     return (await res.json()) as { content: string; reasoning?: string; reasoningTokens?: number };
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof ChatApiError) throw err;
-    if (err.name === 'AbortError') throw ChatApiError.abort();
-    throw ChatApiError.network(err.message);
+    if (err instanceof Error && err.name === 'AbortError') throw ChatApiError.abort();
+    throw ChatApiError.network(err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -124,15 +124,15 @@ export function streamChat(
         }
       }
       onDone?.();
-    } catch (e: any) {
-      if (e?.name === "AbortError") {
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
         onDone?.(); // Abort時も正常終了扱い
         return;
       }
       if (e instanceof ChatApiError) {
         onError?.(e);
       } else {
-        onError?.(ChatApiError.network(e.message));
+        onError?.(ChatApiError.network(e instanceof Error ? e.message : String(e)));
       }
     }
   })();

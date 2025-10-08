@@ -31,7 +31,6 @@ export const Avatar: React.FC<Props> = ({ src, size = 32, alt = "avatar", color 
       aria-label={alt}
     >
       {src ? (
-        // eslint-disable-next-line jsx-a11y/alt-text
         <img src={src} alt={alt} className="w-full h-full object-cover" crossOrigin="anonymous" draggable={false} />
       ) : (
         <DefaultSvg />

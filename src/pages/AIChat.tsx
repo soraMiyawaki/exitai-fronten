@@ -96,7 +96,9 @@ export default function AIChat() {
           setConversationTree(tree);
         }
       }
-    } catch {}
+    } catch {
+      // LocalStorage access error - ignore
+    }
   }, []);
 
   // ツリー保存
@@ -152,7 +154,7 @@ export default function AIChat() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [messages, isStreaming, showSearch, input]);
+  }, [messages, isStreaming, showSearch, input, stop]);
 
   const base: ChatMessage[] = useMemo(
     () =>

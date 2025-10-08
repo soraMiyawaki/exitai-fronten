@@ -1,23 +1,32 @@
 // src/components/MarkdownMessage.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { copyToClipboard, showCopyFallbackHint } from "../lib/copy";
 import "highlight.js/styles/github.css";
 
-const CodeBlock: React.FC<any> = ({ inline, className, children, ...props }) => {
+interface CodeBlockProps {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+  [key: string]: unknown;
+}
+
+const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children, ...props }) => {
   const [copied, setCopied] = useState<null | boolean>(null);
 
   // Extract text content from children
-  const extractText = (node: any): string => {
+  const extractText = useCallback((node: unknown): string => {
     if (typeof node === 'string') return node;
     if (Array.isArray(node)) return node.map(extractText).join('');
-    if (node?.props?.children) return extractText(node.props.children);
+    if (node && typeof node === 'object' && 'props' in node && node.props && typeof node.props === 'object' && 'children' in node.props) {
+      return extractText(node.props.children);
+    }
     return '';
-  };
+  }, []);
 
-  const code = useMemo(() => extractText(children).replace(/\n$/, ''), [children]);
+  const code = useMemo(() => extractText(children).replace(/\n$/, ''), [children, extractText]);
 
   if (inline) {
     return (
@@ -67,7 +76,7 @@ export default function MarkdownMessage({ content }: { content: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
-        components={{ code: CodeBlock as any }}
+        components={{ code: CodeBlock }}
       >
         {content}
       </ReactMarkdown>
