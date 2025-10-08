@@ -4,6 +4,7 @@ import AIChat from '../pages/AIChat';
 import Settings from '../pages/Settings';
 import NotFound from '../pages/NotFound';
 import Login from '../pages/Login';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
 /**
  * ルーティング設定。新たに login と company ページを追加しています。
@@ -16,7 +17,11 @@ export const router = createBrowserRouter(
     },
     {
       path: '/',
-      element: <AppLayout />,
+      element: (
+        <ProtectedRoute>
+          <AppLayout />
+        </ProtectedRoute>
+      ),
       errorElement: <NotFound />,
       children: [
         { index: true, element: <Navigate to="/chat/ai" replace /> },

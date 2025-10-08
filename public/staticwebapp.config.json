@@ -27,8 +27,7 @@
     }
   },
   "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/login", "/.auth/*", "/api/*", "/*.{css,js,png,jpg,gif,svg,ico,woff,woff2,ttf,eot}"]
+    "rewrite": "/index.html"
   },
   "responseOverrides": {
     "401": {
@@ -38,10 +37,6 @@
     "403": {
       "redirect": "/.auth/login/github?post_login_redirect_uri=/chat/ai",
       "statusCode": 302
-    },
-    "404": {
-      "rewrite": "/index.html",
-      "statusCode": 200
     }
   },
   "globalHeaders": {

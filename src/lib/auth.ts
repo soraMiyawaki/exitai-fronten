@@ -1,0 +1,49 @@
+// src/lib/auth.ts
+
+interface ClientPrincipal {
+  identityProvider: string;
+  userId: string;
+  userDetails: string;
+  userRoles: string[];
+}
+
+interface AuthResponse {
+  clientPrincipal: ClientPrincipal | null;
+}
+
+/**
+ * Get current authenticated user info
+ */
+export async function getCurrentUser(): Promise<ClientPrincipal | null> {
+  try {
+    const response = await fetch("/.auth/me");
+    if (!response.ok) return null;
+
+    const data: AuthResponse = await response.json();
+    return data.clientPrincipal;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if user is authenticated
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  const user = await getCurrentUser();
+  return user !== null;
+}
+
+/**
+ * Redirect to login page
+ */
+export function redirectToLogin(returnUrl: string = window.location.pathname) {
+  window.location.href = `/.auth/login/github?post_login_redirect_uri=${encodeURIComponent(returnUrl)}`;
+}
+
+/**
+ * Redirect to logout
+ */
+export function logout() {
+  window.location.href = "/.auth/logout";
+}
