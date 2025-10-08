@@ -39,8 +39,6 @@ jobs:
 
       - name: Build
         run: pnpm run build
-        env:
-          VITE_API_BASE: /api
 
       - name: Install OIDC Client from Core Package
         run: pnpm add @actions/core@1.6.0 @actions/http-client
