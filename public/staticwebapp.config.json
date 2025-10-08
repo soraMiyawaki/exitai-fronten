@@ -1,1 +1,48 @@
-{"routes":[{"route":"/login","allowedRoles":["anonymous"]},{"route":"/.auth/*","allowedRoles":["anonymous"]},{"route":"/*","allowedRoles":["admin"]}],"navigationFallback":{"rewrite":"/index.html","exclude":["/api/*","/*.{css,js,png,jpg,gif,svg,ico,woff,woff2,ttf,eot}"]},"responseOverrides":{"401":{"redirect":"/login","statusCode":302},"403":{"redirect":"/login","statusCode":302},"404":{"rewrite":"/index.html","statusCode":200}},"globalHeaders":{"X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Content-Security-Policy":"default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: https:; font-src 'self' data: https:;"},"mimeTypes":{".json":"application/json",".js":"application/javascript",".css":"text/css"}}
+{
+  "routes": [
+    {
+      "route": "/assets/*",
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/login",
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/.auth/*",
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/*",
+      "allowedRoles": ["admin"]
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "/*.{css,js,png,jpg,gif,svg,ico,woff,woff2,ttf,eot}"]
+  },
+  "responseOverrides": {
+    "401": {
+      "redirect": "/login",
+      "statusCode": 302
+    },
+    "403": {
+      "redirect": "/login",
+      "statusCode": 302
+    },
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: https:; font-src 'self' data: https:;"
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".js": "application/javascript",
+    ".css": "text/css"
+  }
+}
