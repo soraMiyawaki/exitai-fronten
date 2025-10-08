@@ -28,15 +28,15 @@
   },
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/api/*", "/*.{css,js,png,jpg,gif,svg,ico,woff,woff2,ttf,eot}"]
+    "exclude": ["/login", "/.auth/*", "/api/*", "/*.{css,js,png,jpg,gif,svg,ico,woff,woff2,ttf,eot}"]
   },
   "responseOverrides": {
     "401": {
-      "redirect": "/login",
+      "redirect": "/.auth/login/github?post_login_redirect_uri=/chat/ai",
       "statusCode": 302
     },
     "403": {
-      "redirect": "/login",
+      "redirect": "/.auth/login/github?post_login_redirect_uri=/chat/ai",
       "statusCode": 302
     },
     "404": {

@@ -53,21 +53,11 @@ export default function Login() {
               </svg>
               GitHubでログイン
             </a>
-
-            <a
-              href="/.auth/login/aad?post_login_redirect_uri=/chat/ai"
-              className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
-              </svg>
-              Microsoftでログイン
-            </a>
           </div>
         )}
 
         <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          管理者のみがアクセスできます
+          GitHubアカウントでログインしてください
         </p>
       </div>
     </div>
