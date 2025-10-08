@@ -152,7 +152,9 @@ export default function AIChat() {
       // Esc: 入力クリア or 検索を閉じる or ストップ
       if (e.key === 'Escape') {
         if (isStreaming) {
-          stop();
+          abortRef.current?.abort();
+          abortRef.current = null;
+          setIsStreaming(false);
         } else if (showSearch) {
           setShowSearch(false);
           setSearchQuery("");
@@ -164,7 +166,7 @@ export default function AIChat() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [messages, isStreaming, showSearch, input, stop]);
+  }, [messages, isStreaming, showSearch, input]);
 
   const base: ChatMessage[] = useMemo(
     () =>
