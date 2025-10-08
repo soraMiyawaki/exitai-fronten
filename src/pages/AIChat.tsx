@@ -21,6 +21,7 @@ import {
   deserializeTree,
   type ConversationTree,
 } from "../lib/conversationTree";
+import { getSessionKeys } from "../lib/session";
 
 const KUMA_STYLE = [
   "出力ルール：すべての文末に必ず『クマ♡』を付けて返答してください。",
@@ -28,9 +29,8 @@ const KUMA_STYLE = [
   "箇条書きでも各行の最後に付けてください。",
 ].join("\n");
 
-const LS_MSGS = "exitai.messages";
-const LS_TREE = "exitai.conversationTree";
-const LS_THEME = "exitai.theme";
+// Get session-specific storage keys
+const STORAGE_KEYS = getSessionKeys();
 
 const CATS = [
   "インフラ/サーバ",
@@ -71,7 +71,7 @@ export default function AIChat() {
 
   // テーマ復元
   useEffect(() => {
-    const savedTheme = localStorage.getItem(LS_THEME);
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
     if (savedTheme === "dark") {
       setDarkMode(true);
       document.documentElement.classList.add("dark");
@@ -81,12 +81,12 @@ export default function AIChat() {
   // ツリー復元
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(LS_TREE);
+      const raw = localStorage.getItem(STORAGE_KEYS.tree);
       if (raw) {
         setConversationTree(deserializeTree(raw));
       } else {
         // Fallback to old messages format
-        const oldMsgs = localStorage.getItem(LS_MSGS);
+        const oldMsgs = localStorage.getItem(STORAGE_KEYS.messages);
         if (oldMsgs) {
           const msgs: ChatMessage[] = JSON.parse(oldMsgs);
           let tree = createConversationTree();
@@ -103,9 +103,9 @@ export default function AIChat() {
 
   // ツリー保存
   useEffect(() => {
-    localStorage.setItem(LS_TREE, serializeTree(conversationTree));
+    localStorage.setItem(STORAGE_KEYS.tree, serializeTree(conversationTree));
     // Also save to old format for backwards compatibility
-    localStorage.setItem(LS_MSGS, JSON.stringify(messages));
+    localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages));
   }, [conversationTree, messages]);
 
   // 自動スクロール
@@ -119,8 +119,8 @@ export default function AIChat() {
     abortRef.current = null;
     setIsStreaming(false);
     // 中断時も途中までの回答を保存
-    localStorage.setItem(LS_TREE, serializeTree(conversationTree));
-    localStorage.setItem(LS_MSGS, JSON.stringify(messages));
+    localStorage.setItem(STORAGE_KEYS.tree, serializeTree(conversationTree));
+    localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages));
   }, [conversationTree, messages]);
 
   // キーボードショートカット
@@ -297,10 +297,10 @@ export default function AIChat() {
     setDarkMode(newDark);
     if (newDark) {
       document.documentElement.classList.add("dark");
-      localStorage.setItem(LS_THEME, "dark");
+      localStorage.setItem(STORAGE_KEYS.theme, "dark");
     } else {
       document.documentElement.classList.remove("dark");
-      localStorage.setItem(LS_THEME, "light");
+      localStorage.setItem(STORAGE_KEYS.theme, "light");
     }
   };
 
