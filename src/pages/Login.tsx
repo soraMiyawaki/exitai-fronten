@@ -11,8 +11,8 @@ export default function Login() {
       .then((data) => {
         if (data.clientPrincipal) {
           setUserInfo(data.clientPrincipal);
-          // 認証済みの場合はホームにリダイレクト
-          window.location.href = "/";
+          // 認証済みの場合はチャットページにリダイレクト
+          window.location.href = "/chat/ai";
         }
       })
       .catch(() => {
@@ -41,7 +41,7 @@ export default function Login() {
         ) : (
           <div className="space-y-4">
             <a
-              href="/.auth/login/github?post_login_redirect_uri=/"
+              href="/.auth/login/github?post_login_redirect_uri=/chat/ai"
               className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@ export default function Login() {
             </a>
 
             <a
-              href="/.auth/login/aad?post_login_redirect_uri=/"
+              href="/.auth/login/aad?post_login_redirect_uri=/chat/ai"
               className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

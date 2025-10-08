@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from './AppLayout';
 import AIChat from '../pages/AIChat';
 import Settings from '../pages/Settings';
@@ -19,6 +19,7 @@ export const router = createBrowserRouter(
       element: <AppLayout />,
       errorElement: <NotFound />,
       children: [
+        { index: true, element: <Navigate to="/chat/ai" replace /> },
         { path: 'chat/ai', element: <AIChat /> },
         { path: 'settings', element: <Settings /> },
         { path: '*', element: <NotFound /> },
