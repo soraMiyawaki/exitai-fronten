@@ -18,6 +18,8 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     name: Build and Deploy Frontend
+    # SWA Token が設定されている場合のみ実行
+    if: ${{ secrets.AZURE_SWA_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
