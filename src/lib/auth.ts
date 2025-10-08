@@ -41,6 +41,22 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 /**
+ * Check if user is authorized (in the allowlist)
+ */
+export async function isAuthorized(): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+
+  // 許可するGitHubユーザー名のリスト
+  const ALLOWED_USERS = [
+    "ET-Miyawaki",
+    // 他の許可ユーザーをここに追加
+  ];
+
+  return ALLOWED_USERS.includes(user.userDetails);
+}
+
+/**
  * Redirect to login page
  */
 export function redirectToLogin(returnUrl: string = window.location.pathname) {
