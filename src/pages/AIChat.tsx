@@ -65,6 +65,7 @@ export default function AIChat() {
   const listRef = useRef<HTMLDivElement>(null);
   const streamStartRef = useRef<number>(0);
   const streamCharsRef = useRef<number>(0);
+  const prevMessageCountRef = useRef<number>(0);
 
   // Get current messages from tree
   const messages = useMemo(() => getCurrentMessages(conversationTree), [conversationTree]);
@@ -112,6 +113,11 @@ export default function AIChat() {
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isStreaming]);
+
+  // Track previous message count for animation optimization
+  useEffect(() => {
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length]);
 
   // Stop function (defined before useEffect that uses it)
   const stop = useCallback(() => {
@@ -506,7 +512,7 @@ export default function AIChat() {
               カテゴリを選んで質問を入力してください。
             </motion.div>
           )}
-          {filteredMessages.map((item, displayIndex) => {
+          {filteredMessages.map((item) => {
             const m = item.message;
             const i = item.originalIndex;
             const isUser = m.role === "user";
@@ -515,12 +521,16 @@ export default function AIChat() {
             const branches = nodeId ? getSiblingBranches(conversationTree, nodeId) : [];
             const hasBranches = branches.length > 0;
 
+            // Only animate new messages (last 2 messages)
+            const isNewMessage = i >= prevMessageCountRef.current - 1;
+            const shouldAnimate = isNewMessage && messages.length <= 50; // Don't animate if too many messages
+
             return (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 6 }}
+                initial={shouldAnimate ? { opacity: 0, y: 6 } : { opacity: 1, y: 0 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, delay: displayIndex * 0.02 }}
+                transition={shouldAnimate ? { duration: 0.15 } : { duration: 0 }}
                 className={`flex flex-col gap-1 w-full ${isUser ? "items-end" : "items-start"}`}
               >
                 {hasBranches && (

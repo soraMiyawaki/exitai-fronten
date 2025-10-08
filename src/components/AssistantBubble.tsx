@@ -1,5 +1,5 @@
 // src/components/AssistantBubble.tsx
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import MarkdownMessage from "./MarkdownMessage";
 import { copyToClipboard, showCopyFallbackHint } from "../lib/copy";
@@ -16,7 +16,7 @@ type Props = {
   reasoningTokens?: number;
 };
 
-export default function AssistantBubble({ content, talking = false, streamSpeed, timestamp, reasoning, reasoningTokens }: Props) {
+const AssistantBubble = React.memo(({ content, talking = false, streamSpeed, timestamp, reasoning, reasoningTokens }: Props) => {
   const [copied, setCopied] = useState<null | boolean>(null);
 
   // Calculate thinking time from reasoning tokens (rough estimate: ~100 tokens/sec)
@@ -66,4 +66,8 @@ export default function AssistantBubble({ content, talking = false, streamSpeed,
       </div>
     </motion.div>
   );
-}
+});
+
+AssistantBubble.displayName = 'AssistantBubble';
+
+export default AssistantBubble;

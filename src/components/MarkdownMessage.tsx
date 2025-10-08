@@ -69,7 +69,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, children, ...p
   );
 };
 
-export default function MarkdownMessage({ content }: { content: string }) {
+const MarkdownMessage = React.memo(({ content }: { content: string }) => {
   return (
     <div className="prose prose-neutral dark:prose-invert max-w-none prose-pre:p-0 prose-code:before:content-none prose-code:after:content-none">
       <ReactMarkdown
@@ -81,4 +81,8 @@ export default function MarkdownMessage({ content }: { content: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});
+
+MarkdownMessage.displayName = 'MarkdownMessage';
+
+export default MarkdownMessage;

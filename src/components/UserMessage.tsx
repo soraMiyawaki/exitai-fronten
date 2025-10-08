@@ -1,5 +1,5 @@
 // src/components/UserMessage.tsx
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { formatRelativeTime } from "../lib/time";
 
@@ -10,7 +10,7 @@ type Props = {
   onResend?: () => void;
 };
 
-export default function UserMessage({ content, timestamp, onEdit, onResend }: Props) {
+const UserMessage = React.memo(({ content, timestamp, onEdit, onResend }: Props) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(content);
   const [showActions, setShowActions] = useState(false);
@@ -103,4 +103,8 @@ export default function UserMessage({ content, timestamp, onEdit, onResend }: Pr
       )}
     </div>
   );
-}
+});
+
+UserMessage.displayName = 'UserMessage';
+
+export default UserMessage;
