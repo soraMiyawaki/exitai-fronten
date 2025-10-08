@@ -3,12 +3,17 @@ import AppLayout from './AppLayout';
 import AIChat from '../pages/AIChat';
 import Settings from '../pages/Settings';
 import NotFound from '../pages/NotFound';
+import Login from '../pages/Login';
 
 /**
  * ルーティング設定。新たに login と company ページを追加しています。
  */
 export const router = createBrowserRouter(
   [
+    {
+      path: '/login',
+      element: <Login />,
+    },
     {
       path: '/',
       element: <AppLayout />,
