@@ -59,9 +59,13 @@ export async function isAuthorized(): Promise<boolean> {
 
   // 許可するGitHubユーザー名のリスト
   const ALLOWED_USERS = [
-    "ET-Miyawaki",
     "soraMiyawaki",
-    // 他の許可ユーザーをここに追加
+    "ET-Asako",
+    "izt01",
+    "ET-Nakagawa",
+    "ET-Ayusawa",
+    "ET-Arai",
+    "Et-Sugiura"
   ];
 
   return ALLOWED_USERS.includes(user.userDetails);
