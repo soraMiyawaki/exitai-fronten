@@ -22,6 +22,8 @@ import {
   type ConversationTree,
 } from "../lib/conversationTree";
 import { getSessionKeys } from "../lib/session";
+import { saveConversation, getConversation } from "../lib/conversationApi";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const KUMA_STYLE = [
   "出力ルール：すべての文末に必ず『クマ♡』を付けて返答してください。",
@@ -47,7 +49,14 @@ const DEFAULT_SYS = (cat: string) =>
   `あなたは${cat}領域のシステムエンジニアです。要件の聞き返し→前提の明確化→箇条書きの手順→最後に注意点の順で、簡潔かつ正確に答えてください。`;
 
 export default function AIChat() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [conversationTree, setConversationTree] = useState<ConversationTree>(() => createConversationTree());
+  const [currentConversationId, setCurrentConversationId] = useState<string>(() => {
+    // URLパラメータから会話IDを取得、なければ新規生成
+    const conversationParam = searchParams.get('conversation');
+    return conversationParam || `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  });
   const [input, setInput] = useState("");
   const [cat, setCat] = useState<Category>(CATS[0]);
   const [sys, setSys] = useState(DEFAULT_SYS(CATS[0]));
@@ -191,35 +200,64 @@ export default function AIChat() {
     }
   }, [ttsMode, speakTextVoicevox, speakTextWebSpeech]);
 
-  // ツリー復元
+  // 会話読み込み（URLパラメータまたはローカルストレージ）
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.tree);
-      if (raw) {
-        setConversationTree(deserializeTree(raw));
-      } else {
-        // Fallback to old messages format
-        const oldMsgs = localStorage.getItem(STORAGE_KEYS.messages);
-        if (oldMsgs) {
-          const msgs: ChatMessage[] = JSON.parse(oldMsgs);
-          let tree = createConversationTree();
-          msgs.forEach(msg => {
-            tree = appendMessage(tree, msg);
-          });
-          setConversationTree(tree);
-        }
-      }
-    } catch {
-      // LocalStorage access error - ignore
-    }
-  }, []);
+    const conversationParam = searchParams.get('conversation');
 
-  // ツリー保存
+    if (conversationParam) {
+      // URLパラメータから会話を読み込む
+      getConversation(conversationParam).then(conv => {
+        if (conv && conv.conversation_tree) {
+          setConversationTree(conv.conversation_tree);
+          setCurrentConversationId(conv.id);
+        }
+      }).catch(err => {
+        console.error("[AIChat] Failed to load conversation:", err);
+      });
+    } else {
+      // ローカルストレージから復元
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.tree);
+        if (raw) {
+          setConversationTree(deserializeTree(raw));
+        } else {
+          // Fallback to old messages format
+          const oldMsgs = localStorage.getItem(STORAGE_KEYS.messages);
+          if (oldMsgs) {
+            const msgs: ChatMessage[] = JSON.parse(oldMsgs);
+            let tree = createConversationTree();
+            msgs.forEach(msg => {
+              tree = appendMessage(tree, msg);
+            });
+            setConversationTree(tree);
+          }
+        }
+      } catch {
+        // LocalStorage access error - ignore
+      }
+    }
+  }, [searchParams]);
+
+  // ツリー保存（ローカルストレージ）
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.tree, serializeTree(conversationTree));
     // Also save to old format for backwards compatibility
     localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages));
   }, [conversationTree, messages]);
+
+  // データベースへ自動保存（デバウンス付き）
+  useEffect(() => {
+    // メッセージが1つ以上ある場合のみ保存
+    if (messages.length === 0) return;
+
+    const timer = setTimeout(() => {
+      saveConversation(currentConversationId, conversationTree).catch(err =>
+        console.error("[AIChat] Failed to save conversation:", err)
+      );
+    }, 2000); // 2秒後に保存
+
+    return () => clearTimeout(timer);
+  }, [conversationTree, currentConversationId, messages.length]);
 
   // 自動スクロール
   useEffect(() => {
@@ -555,6 +593,15 @@ export default function AIChat() {
                 </motion.div>
               )}
             </div>
+
+            <button
+              onClick={() => navigate("/history")}
+              className="rounded-xl border border-[var(--border)] px-3 py-2 text-sm bg-[var(--bg)] hover:bg-[var(--surface)] focus-visible:ring-2 ring-brand ring-offset-2 transition"
+              title="会話履歴"
+              aria-label="会話履歴"
+            >
+              📚 履歴
+            </button>
 
             <button
               onClick={newChat}

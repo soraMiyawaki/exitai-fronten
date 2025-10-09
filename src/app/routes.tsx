@@ -3,6 +3,7 @@ import AppLayout from './AppLayout';
 import AIChat from '../pages/AIChat';
 import Settings from '../pages/Settings';
 import Attendance from '../pages/Attendance';
+import ConversationHistory from '../pages/ConversationHistory';
 import NotFound from '../pages/NotFound';
 import Login from '../pages/Login';
 import { ProtectedRoute } from '../components/ProtectedRoute';
@@ -27,6 +28,7 @@ export const router = createBrowserRouter(
       children: [
         { index: true, element: <Navigate to="/chat/ai" replace /> },
         { path: 'chat/ai', element: <AIChat /> },
+        { path: 'history', element: <ConversationHistory /> },
         { path: 'attendance', element: <Attendance /> },
         { path: 'settings', element: <Settings /> },
         { path: '*', element: <NotFound /> },
