@@ -61,9 +61,22 @@ export default function TalkingAvatar({
   return (
     <div
       className={`relative ${className}`}
-      style={{ width: size, height: size }}   // ← 枠なし・切り抜きなし
+      style={{
+        width: size,
+        height: size,
+        // トーク中に揺れる・跳ねるアニメーション
+        animation: active ? 'avatar-bounce 0.6s ease-in-out infinite' : 'none',
+      }}
       aria-label="AIアバター"
     >
+      <style>{`
+        @keyframes avatar-bounce {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-4px) rotate(-2deg); }
+          50% { transform: translateY(-2px) rotate(0deg); }
+          75% { transform: translateY(-4px) rotate(2deg); }
+        }
+      `}</style>
       {/* 閉じ口（常に表示） */}
       <img
         src={closedSrc}

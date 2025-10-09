@@ -62,7 +62,7 @@ export default function AIChat() {
   const [showSearch, setShowSearch] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
-  const [ttsMode, setTtsMode] = useState<'webspeech' | 'voicevox'>('voicevox');
+  const [ttsMode, setTtsMode] = useState<'webspeech' | 'voicevox'>('webspeech');
   const abortRef = useRef<AbortController | null>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
