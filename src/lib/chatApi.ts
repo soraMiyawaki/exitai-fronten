@@ -111,7 +111,6 @@ export function streamChat(
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false;
-      let buffer = '';
 
       while (!done) {
         const { value, done: d } = await reader.read();
