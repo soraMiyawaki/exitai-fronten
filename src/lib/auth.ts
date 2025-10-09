@@ -65,7 +65,7 @@ export async function isAuthorized(): Promise<boolean> {
     "ET-Nakagawa",
     "ET-Ayusawa",
     "ET-Arai",
-    "Et-Sugiura"
+    "ET-Sugiura"
   ];
 
   return ALLOWED_USERS.includes(user.userDetails);
