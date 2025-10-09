@@ -108,12 +108,16 @@ export default function AIChat() {
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'ja-JP';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.rate = 1.3; // 速度を上げる（1.0→1.3）
+    utterance.pitch = 1.2; // ピッチを上げて可愛い声に
 
-    // 日本語音声を優先的に選択
+    // 日本語の女性音声を優先的に選択
     const voices = window.speechSynthesis.getVoices();
-    const japaneseVoice = voices.find(voice => voice.lang.startsWith('ja'));
+    const japaneseVoice = voices.find(voice =>
+      voice.lang.startsWith('ja') && voice.name.toLowerCase().includes('female')
+    ) || voices.find(voice =>
+      voice.lang.startsWith('ja')
+    );
     if (japaneseVoice) {
       utterance.voice = japaneseVoice;
     }
@@ -287,11 +291,15 @@ export default function AIChat() {
         setStreamSpeed(0);
         abortRef.current = null;
 
-        // AIメッセージ完了時に音声読み上げ
-        const lastMessage = getCurrentMessages(conversationTree)[getCurrentMessages(conversationTree).length - 1];
-        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content) {
-          speakText(lastMessage.content);
-        }
+        // AIメッセージ完了時に音声読み上げ（遅延なし）
+        setConversationTree((currentTree) => {
+          const lastMessage = getCurrentMessages(currentTree)[getCurrentMessages(currentTree).length - 1];
+          if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content) {
+            // 次のフレームで読み上げ開始（UIブロッキングを避ける）
+            requestAnimationFrame(() => speakText(lastMessage.content));
+          }
+          return currentTree;
+        });
       },
       (err) => {
         console.error(err);
