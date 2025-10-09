@@ -62,8 +62,10 @@ export default function AIChat() {
   const [showSearch, setShowSearch] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsMode, setTtsMode] = useState<'webspeech' | 'voicevox'>('voicevox');
   const abortRef = useRef<AbortController | null>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const streamStartRef = useRef<number>(0);
   const streamCharsRef = useRef<number>(0);
@@ -89,8 +91,58 @@ export default function AIChat() {
     }
   }, []);
 
-  // 音声読み上げ関数（子供の声、最高速）
-  const speakText = useCallback((text: string) => {
+  // VOICEVOX音声読み上げ（ずんだもん）
+  const speakTextVoicevox = useCallback(async (text: string) => {
+    if (!ttsEnabled) return;
+
+    // 進行中の音声を停止
+    audioRef.current?.pause();
+
+    // マークダウン記号やコードブロックを除去
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '') // コードブロック削除
+      .replace(/`[^`]+`/g, '') // インラインコード削除
+      .replace(/[#*_~[\]()]/g, '') // マークダウン記号削除
+      .replace(/https?:\/\/[^\s]+/g, '') // URL削除
+      .trim();
+
+    if (!cleanText) return;
+
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE !== undefined
+        ? import.meta.env.VITE_API_BASE
+        : "http://127.0.0.1:8000";
+
+      const response = await fetch(`${API_BASE}/api/tts/voicevox`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, speaker: 1 }) // 1 = ずんだもん
+      });
+
+      if (!response.ok) {
+        console.error('[TTS] VOICEVOX API failed:', response.status);
+        return;
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // 音声を再生
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.play();
+
+      // 再生終了後にURLを解放
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+      };
+    } catch (error) {
+      console.error('[TTS] Error:', error);
+    }
+  }, [ttsEnabled]);
+
+  // Web Speech API音声読み上げ（子供の声、最高速）
+  const speakTextWebSpeech = useCallback((text: string) => {
     if (!ttsEnabled || !window.speechSynthesis) return;
 
     // 進行中の音声を停止
@@ -108,8 +160,8 @@ export default function AIChat() {
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'ja-JP';
-    utterance.rate = 1.8; // 最高速（1.3→1.8）
-    utterance.pitch = 1.5; // 子供の声（高いピッチ）
+    utterance.rate = 1.8; // 最高速
+    utterance.pitch = 1.5; // 子供の声
     utterance.volume = 1.0; // 最大音量
 
     // 日本語音声を選択（女性・子供の声を優先）
@@ -129,6 +181,15 @@ export default function AIChat() {
     speechSynthesisRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, [ttsEnabled]);
+
+  // 音声読み上げ（モードに応じて切り替え）
+  const speakText = useCallback((text: string) => {
+    if (ttsMode === 'voicevox') {
+      speakTextVoicevox(text);
+    } else {
+      speakTextWebSpeech(text);
+    }
+  }, [ttsMode, speakTextVoicevox, speakTextWebSpeech]);
 
   // ツリー復元
   useEffect(() => {
@@ -380,7 +441,12 @@ export default function AIChat() {
       localStorage.setItem(STORAGE_KEYS.tts, "disabled");
       // TTS無効化時は進行中の音声を停止
       window.speechSynthesis?.cancel();
+      audioRef.current?.pause();
     }
+  };
+
+  const toggleTtsMode = () => {
+    setTtsMode(prev => prev === 'voicevox' ? 'webspeech' : 'voicevox');
   };
 
   return (
@@ -426,11 +492,22 @@ export default function AIChat() {
               className={`rounded-xl border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface)] focus-visible:ring-2 ring-brand ring-offset-2 transition ${
                 ttsEnabled ? "bg-brand/10 border-brand" : "bg-[var(--bg)]"
               }`}
-              title="音声読み上げ切替"
+              title={`音声読み上げ切替 (${ttsMode === 'voicevox' ? 'ずんだもん' : 'ブラウザ音声'})`}
               aria-label="音声読み上げ切替"
             >
               {ttsEnabled ? "🔊" : "🔇"}
             </button>
+
+            {ttsEnabled && (
+              <button
+                onClick={toggleTtsMode}
+                className="rounded-xl border border-[var(--border)] px-3 py-2 text-sm bg-[var(--bg)] hover:bg-[var(--surface)] focus-visible:ring-2 ring-brand ring-offset-2 transition"
+                title={ttsMode === 'voicevox' ? 'ずんだもん音声' : 'ブラウザ音声'}
+                aria-label="音声モード切替"
+              >
+                {ttsMode === 'voicevox' ? '🐻' : '🎤'}
+              </button>
+            )}
 
             <button
               onClick={() => setShowSearch(!showSearch)}
