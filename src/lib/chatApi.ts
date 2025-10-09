@@ -111,16 +111,24 @@ export function streamChat(
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false;
+      let buffer = '';
+
       while (!done) {
         const { value, done: d } = await reader.read();
         done = d;
         if (value) {
-          const chunk = decoder.decode(value, { stream: true });
+          // バッファリングせずに即座にデコード・送信（最大速度）
+          const chunk = decoder.decode(value, { stream: !done });
+
           // ERROR: で始まる場合はエラー
           if (chunk.startsWith("ERROR: ")) {
             throw new ChatApiError(500, 'SERVER', chunk.replace("ERROR: ", ""), false);
           }
-          onToken(chunk);
+
+          // 即座にトークンを送信（バッファリングなし）
+          if (chunk) {
+            onToken(chunk);
+          }
         }
       }
       onDone?.();

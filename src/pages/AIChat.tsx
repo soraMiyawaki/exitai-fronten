@@ -89,7 +89,7 @@ export default function AIChat() {
     }
   }, []);
 
-  // 音声読み上げ関数
+  // 音声読み上げ関数（子供の声、最高速）
   const speakText = useCallback((text: string) => {
     if (!ttsEnabled || !window.speechSynthesis) return;
 
@@ -108,16 +108,20 @@ export default function AIChat() {
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'ja-JP';
-    utterance.rate = 1.3; // 速度を上げる（1.0→1.3）
-    utterance.pitch = 1.2; // ピッチを上げて可愛い声に
+    utterance.rate = 1.8; // 最高速（1.3→1.8）
+    utterance.pitch = 1.5; // 子供の声（高いピッチ）
+    utterance.volume = 1.0; // 最大音量
 
-    // 日本語の女性音声を優先的に選択
+    // 日本語音声を選択（女性・子供の声を優先）
     const voices = window.speechSynthesis.getVoices();
     const japaneseVoice = voices.find(voice =>
-      voice.lang.startsWith('ja') && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice =>
-      voice.lang.startsWith('ja')
-    );
+      voice.lang.startsWith('ja') && (
+        voice.name.toLowerCase().includes('female') ||
+        voice.name.toLowerCase().includes('child') ||
+        voice.name.toLowerCase().includes('girl')
+      )
+    ) || voices.find(voice => voice.lang.startsWith('ja'));
+
     if (japaneseVoice) {
       utterance.voice = japaneseVoice;
     }
@@ -260,20 +264,21 @@ export default function AIChat() {
           setStreamSpeed(Math.round(streamCharsRef.current / elapsed));
         }
 
-        // Update the last message in the tree
+        // Update the last message in the tree（同期的に即座に更新）
         setConversationTree((prevTree) => {
           const currentPath = prevTree.currentPath;
           const lastNodeId = currentPath[currentPath.length - 1];
           const lastNode = prevTree.nodes.get(lastNodeId);
 
           if (lastNode && lastNode.message.role === "assistant") {
-            // Create new Map to trigger React re-render
+            // Create new Map to trigger React re-render（最小限の処理）
             const newNodes = new Map(prevTree.nodes);
+            const updatedContent = lastNode.message.content + chunk;
             newNodes.set(lastNodeId, {
               ...lastNode,
               message: {
                 ...lastNode.message,
-                content: lastNode.message.content + chunk,
+                content: updatedContent,
               },
             });
 
@@ -291,15 +296,14 @@ export default function AIChat() {
         setStreamSpeed(0);
         abortRef.current = null;
 
-        // AIメッセージ完了時に音声読み上げ（遅延なし）
-        setConversationTree((currentTree) => {
-          const lastMessage = getCurrentMessages(currentTree)[getCurrentMessages(currentTree).length - 1];
-          if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content) {
-            // 次のフレームで読み上げ開始（UIブロッキングを避ける）
-            requestAnimationFrame(() => speakText(lastMessage.content));
-          }
-          return currentTree;
-        });
+        // AIメッセージ完了時に音声読み上げ（完全同期）
+        // conversationTreeから直接取得して即座に読み上げ
+        const currentMessages = getCurrentMessages(conversationTree);
+        const lastMessage = currentMessages[currentMessages.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content) {
+          // 即座に読み上げ開始（遅延ゼロ）
+          speakText(lastMessage.content);
+        }
       },
       (err) => {
         console.error(err);
