@@ -3,13 +3,8 @@ import { useEffect, useState } from 'react';
 
 // ナビゲーションメニュー。ログインや企業ダッシュボードへのリンクを追加しています。
 const nav = [
-  // { to: '/', label: 'ホーム' },
-  // { to: '/chat/company', label: '会話（企業）' },
-  { to: '/chat/ai', label: '会話（AI）' }
-  // { to: '/profile', label: 'プロフィール' },
-  // { to: '/settings', label: '設定' },
-  // { to: '/company', label: '企業ダッシュボード' },
-  // { to: '/login', label: 'ログイン' },
+  { to: '/chat/ai', label: 'AIチャット' },
+  { to: '/attendance', label: '勤怠管理' }
 ];
 
 /**

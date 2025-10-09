@@ -36,6 +36,11 @@ export async function getCurrentUser(): Promise<ClientPrincipal | null> {
  * Check if user is authenticated
  */
 export async function isAuthenticated(): Promise<boolean> {
+  // Development mode: skip authentication
+  if (import.meta.env.DEV) {
+    return true;
+  }
+
   const user = await getCurrentUser();
   return user !== null;
 }
@@ -44,12 +49,18 @@ export async function isAuthenticated(): Promise<boolean> {
  * Check if user is authorized (in the allowlist)
  */
 export async function isAuthorized(): Promise<boolean> {
+  // Development mode: skip authorization
+  if (import.meta.env.DEV) {
+    return true;
+  }
+
   const user = await getCurrentUser();
   if (!user) return false;
 
   // 許可するGitHubユーザー名のリスト
   const ALLOWED_USERS = [
     "ET-Miyawaki",
+    "soraMiyawaki",
     // 他の許可ユーザーをここに追加
   ];
 
