@@ -28,6 +28,7 @@ export function getSessionKeys() {
     messages: `exitai.${sessionId}.messages`,
     tree: `exitai.${sessionId}.conversationTree`,
     theme: `exitai.theme`, // Theme is global across all sessions
+    tts: `exitai.tts`, // TTS is global across all sessions
   };
 }
 

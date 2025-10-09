@@ -61,7 +61,9 @@ export default function AIChat() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const streamStartRef = useRef<number>(0);
   const streamCharsRef = useRef<number>(0);
@@ -78,6 +80,47 @@ export default function AIChat() {
       document.documentElement.classList.add("dark");
     }
   }, []);
+
+  // TTS設定の復元
+  useEffect(() => {
+    const savedTts = localStorage.getItem(STORAGE_KEYS.tts);
+    if (savedTts === "enabled") {
+      setTtsEnabled(true);
+    }
+  }, []);
+
+  // 音声読み上げ関数
+  const speakText = useCallback((text: string) => {
+    if (!ttsEnabled || !window.speechSynthesis) return;
+
+    // 進行中の音声を停止
+    window.speechSynthesis.cancel();
+
+    // マークダウン記号やコードブロックを除去
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '') // コードブロック削除
+      .replace(/`[^`]+`/g, '') // インラインコード削除
+      .replace(/[#*_~[\]()]/g, '') // マークダウン記号削除
+      .replace(/https?:\/\/[^\s]+/g, '') // URL削除
+      .trim();
+
+    if (!cleanText) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'ja-JP';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // 日本語音声を優先的に選択
+    const voices = window.speechSynthesis.getVoices();
+    const japaneseVoice = voices.find(voice => voice.lang.startsWith('ja'));
+    if (japaneseVoice) {
+      utterance.voice = japaneseVoice;
+    }
+
+    speechSynthesisRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [ttsEnabled]);
 
   // ツリー復元
   useEffect(() => {
@@ -243,6 +286,12 @@ export default function AIChat() {
         setIsStreaming(false);
         setStreamSpeed(0);
         abortRef.current = null;
+
+        // AIメッセージ完了時に音声読み上げ
+        const lastMessage = getCurrentMessages(conversationTree)[getCurrentMessages(conversationTree).length - 1];
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content) {
+          speakText(lastMessage.content);
+        }
       },
       (err) => {
         console.error(err);
@@ -310,6 +359,18 @@ export default function AIChat() {
     }
   };
 
+  const toggleTts = () => {
+    const newTts = !ttsEnabled;
+    setTtsEnabled(newTts);
+    if (newTts) {
+      localStorage.setItem(STORAGE_KEYS.tts, "enabled");
+    } else {
+      localStorage.setItem(STORAGE_KEYS.tts, "disabled");
+      // TTS無効化時は進行中の音声を停止
+      window.speechSynthesis?.cancel();
+    }
+  };
+
   return (
     <div className="min-h-dvh w-full overflow-x-hidden bg-[var(--bg)]">
       <div className="mx-auto flex min-h-dvh w-full max-w-[1200px] flex-col">
@@ -346,6 +407,17 @@ export default function AIChat() {
               aria-label="ダークモード切替"
             >
               {darkMode ? "🌙" : "☀️"}
+            </button>
+
+            <button
+              onClick={toggleTts}
+              className={`rounded-xl border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface)] focus-visible:ring-2 ring-brand ring-offset-2 transition ${
+                ttsEnabled ? "bg-brand/10 border-brand" : "bg-[var(--bg)]"
+              }`}
+              title="音声読み上げ切替"
+              aria-label="音声読み上げ切替"
+            >
+              {ttsEnabled ? "🔊" : "🔇"}
             </button>
 
             <button
