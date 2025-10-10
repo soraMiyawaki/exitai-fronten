@@ -63,7 +63,7 @@ export async function isAuthorized(): Promise<boolean> {
     "ET-Asako",
     "izt01",
     "ET-Nakagawa",
-    "ET-Ayusawa",
+    "ET-Ayuzawa",
     "ET-Arai",
     "ET-Sugiura"
   ];
