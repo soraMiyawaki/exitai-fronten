@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIFF App Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #00B900;
+            margin-top: 0;
+        }
+        .button {
+            display: inline-block;
+            background: #00B900;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #00a000;
+        }
+        .info {
+            background: #f0f8ff;
+            border-left: 4px solid #0084ff;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .qr {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .steps {
+            background: #fff9e6;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .steps ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 LIFF App テスト</h1>
+
+        <div class="info">
+            <strong>📌 LIFF ID:</strong> <code>2008285417-7yeMBOwE</code>
+        </div>
+
+        <h2>方法1: LINEアプリから開く</h2>
+        <div class="steps">
+            <ol>
+                <li>LINEアプリを開く</li>
+                <li>自分自身に以下のURLを送信（Keep機能など）</li>
+                <li>送信したリンクをタップ</li>
+            </ol>
+        </div>
+        <div style="text-align: center;">
+            <a href="https://liff.line.me/2008285417-7yeMBOwE" class="button" target="_blank">
+                📱 LIFFアプリを開く
+            </a>
+        </div>
+
+        <h2>方法2: QRコードで開く</h2>
+        <div class="qr">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://liff.line.me/2008285417-7yeMBOwE"
+                 alt="LIFF QR Code"
+                 style="border: 1px solid #ddd; padding: 10px; background: white;">
+            <p style="color: #666; font-size: 14px;">LINEアプリのQRコードリーダーでスキャン</p>
+        </div>
+
+        <h2>方法3: URLをコピーして送信</h2>
+        <div class="info">
+            <code id="liff-url">https://liff.line.me/2008285417-7yeMBOwE</code>
+            <button onclick="copyUrl()" style="margin-left: 10px; padding: 5px 10px; cursor: pointer;">
+                📋 コピー
+            </button>
+        </div>
+
+        <h2>💡 ヒント</h2>
+        <ul>
+            <li>LIFFアプリは<strong>LINE内ブラウザ</strong>でのみ正常に動作します</li>
+            <li>通常のブラウザで開くとエラーが表示されることがあります</li>
+            <li>開発中は必ずLINEアプリから開いてテストしてください</li>
+        </ul>
+
+        <h2>🔗 その他のリンク</h2>
+        <div>
+            <a href="http://localhost:5176" target="_blank">ローカルフロントエンド</a> |
+            <a href="http://127.0.0.1:8000/docs" target="_blank">バックエンドAPI</a> |
+            <a href="https://developers.line.biz/console/" target="_blank">LINE Developers</a>
+        </div>
+    </div>
+
+    <script>
+        function copyUrl() {
+            const url = document.getElementById('liff-url').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URLをコピーしました！\nLINEアプリで自分に送信してください。');
+            });
+        }
+
+        // ページロード時にLIFFが利用可能か確認
+        window.onload = function() {
+            // LINEブラウザかどうかを判定
+            const isLine = /Line/i.test(navigator.userAgent);
+            if (isLine) {
+                document.body.insertAdjacentHTML('afterbegin',
+                    '<div style="background: #00B900; color: white; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px;">' +
+                    '✅ LINEブラウザで開かれています！' +
+                    '</div>'
+                );
+            } else {
+                document.body.insertAdjacentHTML('afterbegin',
+                    '<div style="background: #ff9800; color: white; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px;">' +
+                    '⚠️ LINEブラウザではありません。正常に動作しない可能性があります。' +
+                    '</div>'
+                );
+            }
+        };
+    </script>
+</body>
+</html>

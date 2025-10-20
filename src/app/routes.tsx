@@ -6,6 +6,7 @@ import Attendance from '../pages/Attendance';
 import ConversationHistory from '../pages/ConversationHistory';
 import NotFound from '../pages/NotFound';
 import Login from '../pages/Login';
+import LiffChat from '../pages/LiffChat';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 /**
@@ -16,6 +17,10 @@ export const router = createBrowserRouter(
     {
       path: '/login',
       element: <Login />,
+    },
+    {
+      path: '/liff',
+      element: <LiffChat />,
     },
     {
       path: '/',
